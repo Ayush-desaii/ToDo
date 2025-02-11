@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { Request, Response } from "express";
+import { ILike } from "typeorm";
 import { AppDataSource } from "../data-source";
 import { Todo } from "../entities/todo";
 import { authenticateUser, AuthRequest } from "../middleware/auth";
@@ -12,8 +13,16 @@ router.get("/", authenticateUser, async (req: AuthRequest, res: Response) => {
     
     const page = parseInt(req.query.page as string) || 1; // Default page = 1
     const limit = parseInt(req.query.limit as string) || 10; // Default limit = 10
+    const searchTerm = req.query.search as string || "";
 
-    const todos = await todoRepository.find({ where: { user: { id: req.user!.id } }, take: limit,
+    const whereClause: any = searchTerm
+    ? [
+        { user: { id : req.user!.id }, title: ILike(`%${searchTerm}%`) }
+      ]
+    : { user: { id : req.user!.id }};
+
+    const todos = await todoRepository.find({ where: whereClause, 
+        take: limit,
         skip: (page - 1) * limit,
         order: { createdAt: "DESC" }, });
 
